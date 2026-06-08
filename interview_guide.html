@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Placement Prep Tracker - Interview Prep Guide</title>
+  <style>
+    /* Premium Font & Modern Reset */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      background-color: #f8fafc;
+      line-height: 1.6;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 850px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 50px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+      border: 1px solid #e2e8f0;
+    }
+
+    /* Print instruction banner */
+    .banner {
+      background-color: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .banner button {
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+
+    .banner button:hover {
+      background-color: #1d4ed8;
+    }
+
+    /* Typography */
+    h1 {
+      font-size: 32px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 8px;
+      border-bottom: 2px solid #3b82f6;
+      padding-bottom: 12px;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: #64748b;
+      margin-bottom: 40px;
+    }
+
+    h2 {
+      font-size: 22px;
+      font-weight: 600;
+      color: #1e293b;
+      margin-top: 35px;
+      margin-bottom: 15px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #334155;
+      margin-top: 25px;
+      margin-bottom: 10px;
+    }
+
+    p, li {
+      font-size: 15px;
+      color: #334155;
+      margin-bottom: 12px;
+    }
+
+    ul, ol {
+      margin-left: 24px;
+      margin-bottom: 20px;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    /* Architecture Visual Block */
+    .diagram-container {
+      margin: 30px 0;
+      padding: 20px;
+      background: #f8fafc;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .diagram-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 15px;
+    }
+
+    /* Code Blocks */
+    pre {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 16px;
+      border-radius: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      overflow-x: auto;
+      margin: 15px 0;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    pre code {
+      background: none;
+      color: inherit;
+      padding: 0;
+    }
+
+    /* Callouts */
+    .callout {
+      padding: 16px 20px;
+      border-left: 4px solid #3b82f6;
+      background-color: #f0f9ff;
+      border-radius: 0 8px 8px 0;
+      margin: 20px 0;
+    }
+
+    .callout-title {
+      font-weight: 600;
+      color: #0369a1;
+      margin-bottom: 4px;
+    }
+
+    /* Interview Q&A Cards */
+    .qa-card {
+      margin-bottom: 25px;
+      padding: 20px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background-color: #fafafa;
+    }
+
+    .qa-question {
+      font-weight: 600;
+      font-size: 16px;
+      color: #0f172a;
+      margin-bottom: 10px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .qa-badge {
+      background: #2563eb;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+      height: 20px;
+    }
+
+    .qa-answer {
+      font-size: 14.5px;
+      color: #334155;
+    }
+
+    /* Print CSS overrides */
+    @media print {
+      body {
+        background: #fff;
+        padding: 0;
+      }
+      .container {
+        box-shadow: none;
+        border: none;
+        padding: 0;
+        max-width: 100%;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .page-break {
+        page-break-before: always;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- Banner for Browser/Printing -->
+    <div class="banner no-print">
+      <div>
+        <strong>Print Ready Guide:</strong> Open this file in your browser, press <code>Ctrl + P</code>, and choose <strong>"Save as PDF"</strong> to download a beautifully formatted PDF.
+      </div>
+      <button onclick="window.print()">Print / Save PDF</button>
+    </div>
+
+    <h1>Placement Prep & AI Interview Coach</h1>
+    <div class="subtitle">Complete Technical Walkthrough & Interview Mastery Guide</div>
+
+    <h2>🗺️ System Architecture Overview</h2>
+    <p>The application is built on the <strong>MERN</strong> stack (MongoDB, Express, React, Node.js). It adheres to a clean, client-server decoupled design model where the client communicates with the server via structured HTTP REST APIs.</p>
+    
+    <div class="diagram-container">
+      <div class="diagram-title">Application Data Flow & Interface Linkage</div>
+      <!-- Custom Inline SVG Architecture -->
+      <svg width="600" height="180" viewBox="0 0 600 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Client Box -->
+        <rect x="10" y="50" width="160" height="80" rx="8" fill="#EFF6FF" stroke="#2563eb" stroke-width="2" />
+        <text x="90" y="85" font-family="Inter" font-size="14" font-weight="bold" fill="#1e293b" text-anchor="middle">React Frontend</text>
+        <text x="90" y="105" font-family="Inter" font-size="11" fill="#64748b" text-anchor="middle">Vite + Tailwind CSS</text>
+
+        <!-- Arrow Client -> Server -->
+        <path d="M180 80 H 220" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+        <path d="M220 100 H 180" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+        <text x="200" y="70" font-family="Inter" font-size="9" font-weight="600" fill="#64748b" text-anchor="middle">JSON API</text>
+
+        <!-- Server Box -->
+        <rect x="230" y="50" width="160" height="80" rx="8" fill="#F0FDF4" stroke="#10b981" stroke-width="2" />
+        <text x="310" y="85" font-family="Inter" font-size="14" font-weight="bold" fill="#1e293b" text-anchor="middle">Node/Express Server</text>
+        <text x="310" y="105" font-family="Inter" font-size="11" fill="#64748b" text-anchor="middle">REST Controllers</text>
+
+        <!-- Arrow Server -> Database -->
+        <path d="M400 90 H 440" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+        <text x="420" y="80" font-family="Inter" font-size="9" font-weight="600" fill="#64748b" text-anchor="middle">Mongoose</text>
+
+        <!-- DB Box -->
+        <rect x="450" y="20" width="140" height="60" rx="8" fill="#FFFBEB" stroke="#f59e0b" stroke-width="2" />
+        <text x="520" y="45" font-family="Inter" font-size="12" font-weight="bold" fill="#1e293b" text-anchor="middle">Local MongoDB</text>
+        <text x="520" y="60" font-family="Inter" font-size="9" fill="#64748b" text-anchor="middle">Default Store</text>
+
+        <!-- Fallback DB Box -->
+        <rect x="450" y="100" width="140" height="60" rx="8" fill="#F5F3FF" stroke="#8b5cf6" stroke-width="2" />
+        <text x="520" y="125" font-family="Inter" font-size="12" font-weight="bold" fill="#1e293b" text-anchor="middle">In-Memory DB</text>
+        <text x="520" y="140" font-family="Inter" font-size="9" fill="#64748b" text-anchor="middle">Fallback (Zero-Install)</text>
+
+        <!-- Branch Arrow for Fallback -->
+        <path d="M420 90 V 130 H 440" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" fill="none" />
+
+        <!-- Marker Definitions -->
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b" />
+          </marker>
+        </defs>
+      </svg>
+    </div>
+
+    <h2>🛠️ The Tech Stack (What & Why)</h2>
+    
+    <h3>1. The Frontend (Client-Side)</h3>
+    <ul>
+      <li><strong>React & Vite:</strong> We chose React for its component-driven design and virtual DOM, making UI state changes extremely smooth. We paired it with Vite because it offers extremely fast reload times (HMR) and uses native ES modules, outperforming older tools like Create React App.</li>
+      <li><strong>Tailwind CSS (v4):</strong> Provides a utility-first styling system. It enables custom color matching, responsive layouts (mobile and desktop support), and transitions without writing bloated custom CSS stylesheets.</li>
+      <li><strong>Recharts:</strong> Used on the Dashboard overview. It renders vector (SVG) charts that dynamically scale based on user placement analytics (e.g., Application success ratios, DSA metrics).</li>
+    </ul>
+
+    <h3>2. The Backend (Server-Side)</h3>
+    <ul>
+      <li><strong>Node.js & Express.js:</strong> Node.js handles high-performance, asynchronous non-blocking operations. Express.js sits on top to structure routes and manage middleware (like verifying JSON tokens and mapping requests).</li>
+      <li><strong>Mongoose ODM:</strong> Maps JS objects directly to database schemas. It enforces validation, structures relations (like embedding interview rounds into company documents), and exposes connection helpers.</li>
+      <li><strong>Bcrypt.js:</strong> Securely hashes user passwords on signup using a strong algorithm with salt. Securely validates passwords during login without ever saving clean password strings.</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <h2>🗄️ Database Schemas & Data Model Specifications</h2>
+    
+    <h3>1. User Authentication Model</h3>
+    <p>Manages login capabilities. It includes a custom pre-save function to encrypt passwords before saving to database storage.</p>
+    <pre><code>// Pre-save hook: Hash password securely
+userSchema.pre('save', async function() {
+  if (!this.isModified('password')) return;
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+});</code></pre>
+
+    <h3>2. Job Applications Model</h3>
+    <p>Tracks target companies, dates, status, notes, and individual interview rounds. The rounds are defined as nested subdocuments in a child schema:</p>
+    <pre><code>const roundSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    enum: ['Aptitude', 'Group Discussion', 'Technical Interview', 'HR Interview', 
+           'Communication Round', 'DSA Round', 'Online Assessment', 'Other'],
+  },
+  status: {
+    type: String,
+    required: true,
+    enum: ['Pending', 'Cleared', 'Not Cleared'],
+    default: 'Pending',
+  },
+  date: Date
+});</code></pre>
+
+    <h2>🎓 Common Interview Questions & Answers</h2>
+
+    <!-- Q1 -->
+    <div class="qa-card">
+      <div class="qa-question">
+        <span class="qa-badge">Q1</span>
+        <strong>"How does the database connection fallback function in your backend server?"</strong>
+      </div>
+      <div class="qa-answer">
+        <p>In <code>server.js</code>, we designed the connection helper to handle environment issues. It first tries connecting to a standard local MongoDB. If that fails (meaning the local MongoDB service isn't running), it launches a temporary <code>mongodb-memory-server</code> in-memory instance, connects to it, and runs a data-seeding script automatically. This guarantees that our project runs out-of-the-box anywhere without database configuration dependencies.</p>
+      </div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="qa-card">
+      <div class="qa-question">
+        <span class="qa-badge">Q2</span>
+        <strong>"Explain how authentication security works in this app."</strong>
+      </div>
+      <div class="qa-answer">
+        <p>We use token-based authentication (JWT). When a user registers or logs in, the backend encrypts/verifies the password using <code>bcryptjs</code>, generates a JSON Web Token signed with a backend secret key, and sends it to the client. The frontend stores this token and appends it to the <code>Authorization: Bearer &lt;token&gt;</code> header for any protected HTTP requests. Our custom authentication middleware intercepts the route, validates the token, and attaches user info to the request.</p>
+      </div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="qa-card">
+      <div class="qa-question">
+        <span class="qa-badge">Q3</span>
+        <strong>"What is CORS and why did you need it?"</strong>
+      </div>
+      <div class="qa-answer">
+        <p><strong>CORS</strong> stands for Cross-Origin Resource Sharing. Browsers restrict client websites from querying servers on a different domain. Since our frontend is hosted on port <code>5173</code> (Vite) and our API runs on port <code>5000</code>, requests would get blocked by the browser. By calling <code>app.use(cors())</code> in Express, the backend sends authorization headers back, signaling to the browser that it trusts and welcomes calls from our React origin.</p>
+      </div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="qa-card">
+      <div class="qa-question">
+        <span class="qa-badge">Q4</span>
+        <strong>"How do you handle nested relations like interview rounds in MongoDB?"</strong>
+      </div>
+      <div class="qa-answer">
+        <p>Instead of creating two separate database collections for "Companies" and "Interview Rounds" (which would require joins), we model <code>rounds</code> as an array of subdocuments directly nested inside the main <code>Company</code> schema. This is a best-practice document design in MongoDB because interview rounds are always queried and displayed in relation to their company, resulting in fast single-document lookups.</p>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>
