@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #3b82f6; /* blue-500 */
+  --color-primary-hover: #2563eb; /* blue-600 */
+  --color-secondary: #10b981; /* emerald-500 */
+  
+  --color-bg-light: #f3f4f6; /* gray-100 */
+  --color-bg-dark: #111827; /* gray-900 */
+  
+  --color-surface-light: #ffffff; /* white */
+  --color-surface-dark: #1f2937; /* gray-800 */
+  
+  --color-text-light: #111827; /* gray-900 */
+  --color-text-dark: #f9fafb; /* gray-50 */
+  
+  --color-text-muted-light: #4b5563; /* gray-600 */
+  --color-text-muted-dark: #9ca3af; /* gray-400 */
+  
+  --color-border-light: #e5e7eb; /* gray-200 */
+  --color-border-dark: #374151; /* gray-700 */
+}
+
+@layer base {
+  :root {
+    --bg: var(--color-bg-light);
+    --surface: var(--color-surface-light);
+    --text: var(--color-text-light);
+    --text-muted: var(--color-text-muted-light);
+    --border: var(--color-border-light);
+  }
+
+  .dark {
+    --bg: var(--color-bg-dark);
+    --surface: var(--color-surface-dark);
+    --text: var(--color-text-dark);
+    --text-muted: var(--color-text-muted-dark);
+    --border: var(--color-border-dark);
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+}
