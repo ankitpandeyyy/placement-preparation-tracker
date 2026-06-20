@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Building2, BookOpen, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Building2, BookOpen, Sun, Moon, FileText } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Companies from './pages/Companies';
 import DSATracker from './pages/DSATracker';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ResumeBuilder from './pages/ResumeBuilder';
 
 function Sidebar() {
   const location = useLocation();
   const navItems = [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+    { name: 'Resume Builder', path: '/', icon: FileText },
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Companies', path: '/companies', icon: Building2 },
     { name: 'DSA Tracker', path: '/dsa', icon: BookOpen },
   ];
@@ -80,8 +82,9 @@ function ThemeToggle() {
 function Layout({ children, user, onLogout }) {
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isResumePage = location.pathname === '/';
 
-  if (isAuthPage) {
+  if (isAuthPage || isResumePage) {
     return <div className="w-full h-full bg-bg">{children}</div>;
   }
 
@@ -122,10 +125,11 @@ function App() {
     <Router>
       <Layout user={user} onLogout={handleLogout}>
         <Routes>
+          <Route path="/" element={<ResumeBuilder />} />
           <Route path="/login" element={<Login onLogin={setUser} />} />
           <Route path="/register" element={<Register onLogin={setUser} />} />
           <Route 
-            path="/" 
+            path="/dashboard" 
             element={user ? <Dashboard /> : <Login onLogin={setUser} />} 
           />
           <Route 
