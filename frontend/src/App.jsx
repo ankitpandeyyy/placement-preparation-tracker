@@ -11,10 +11,10 @@ import ResumeBuilder from './pages/ResumeBuilder';
 function Sidebar() {
   const location = useLocation();
   const navItems = [
-    { name: 'Resume Builder', path: '/', icon: FileText },
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'Companies', path: '/companies', icon: Building2 },
     { name: 'DSA Tracker', path: '/dsa', icon: BookOpen },
+    { name: 'Resume Builder', path: '/resume-builder', icon: FileText },
   ];
 
   return (
@@ -82,7 +82,7 @@ function ThemeToggle() {
 function Layout({ children, user, onLogout }) {
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-  const isResumePage = location.pathname === '/';
+  const isResumePage = location.pathname === '/resume-builder';
 
   if (isAuthPage || isResumePage) {
     return <div className="w-full h-full bg-bg">{children}</div>;
@@ -125,13 +125,13 @@ function App() {
     <Router>
       <Layout user={user} onLogout={handleLogout}>
         <Routes>
-          <Route path="/" element={<ResumeBuilder />} />
-          <Route path="/login" element={<Login onLogin={setUser} />} />
-          <Route path="/register" element={<Register onLogin={setUser} />} />
           <Route 
-            path="/dashboard" 
+            path="/" 
             element={user ? <Dashboard /> : <Login onLogin={setUser} />} 
           />
+          <Route path="/login" element={<Login onLogin={setUser} />} />
+          <Route path="/register" element={<Register onLogin={setUser} />} />
+          <Route path="/resume-builder" element={<ResumeBuilder />} />
           <Route 
             path="/companies" 
             element={user ? <Companies /> : <Login onLogin={setUser} />} 
