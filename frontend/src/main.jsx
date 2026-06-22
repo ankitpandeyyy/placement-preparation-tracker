@@ -4,10 +4,27 @@ import './index.css'
 import App from './App.jsx'
 import axios from 'axios'
 
+// Helper to fetch current logged-in user's email or default to guest
+const getUserEmail = () => {
+  try {
+    const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+    return userInfo.email || 'guest';
+  } catch (e) {
+    return 'guest';
+  }
+};
+
+const getCompaniesKey = (email) => `mock_companies_${email || getUserEmail()}`;
+const getDsaKey = (email) => `mock_dsa_${email || getUserEmail()}`;
+
 // Initialize mock data in localStorage for Demo Mode
-const initMockData = () => {
-  if (!localStorage.getItem('mock_companies')) {
-    localStorage.setItem('mock_companies', JSON.stringify([
+const initMockData = (email) => {
+  const userEmail = email || getUserEmail();
+  const companiesKey = getCompaniesKey(userEmail);
+  const dsaKey = getDsaKey(userEmail);
+
+  if (!localStorage.getItem(companiesKey)) {
+    localStorage.setItem(companiesKey, JSON.stringify([
       {
         _id: 'mock_co_1',
         name: 'HighRadius',
@@ -42,8 +59,8 @@ const initMockData = () => {
       }
     ]));
   }
-  if (!localStorage.getItem('mock_dsa')) {
-    localStorage.setItem('mock_dsa', JSON.stringify([
+  if (!localStorage.getItem(dsaKey)) {
+    localStorage.setItem(dsaKey, JSON.stringify([
       {
         _id: 'mock_dsa_1',
         name: 'Two Sum',
@@ -77,10 +94,19 @@ const initMockData = () => {
 
 // Global Axios mock routing handler for Demo Mode (Vercel / serverless fallback)
 const mockRequest = (config) => {
-  initMockData();
   const url = config.url;
   const method = config.method.toLowerCase();
   const data = config.data ? (typeof config.data === 'string' ? JSON.parse(config.data) : config.data) : null;
+
+  // Extract email if logging in/registering, and initialize their database.
+  let activeEmail = null;
+  if (url.includes('/api/auth/login') || url.includes('/api/auth/register')) {
+    activeEmail = data?.email || 'test@example.com';
+    initMockData(activeEmail);
+  } else {
+    initMockData();
+    activeEmail = getUserEmail();
+  }
 
   console.warn(`[Demo Mode] Mocking API call: ${method.toUpperCase()} ${url}`, data);
 
@@ -89,14 +115,14 @@ const mockRequest = (config) => {
   // Auth routes
   if (url.includes('/api/auth/login')) {
     responseData = {
-      _id: 'mock_user_1',
-      username: 'testuser',
+      _id: 'mock_user_' + Date.now(),
+      username: data?.email ? data.email.split('@')[0] : 'testuser',
       email: data?.email || 'test@example.com',
       token: 'mock_jwt_token'
     };
   } else if (url.includes('/api/auth/register')) {
     responseData = {
-      _id: 'mock_user_1',
+      _id: 'mock_user_' + Date.now(),
       username: data?.username || 'testuser',
       email: data?.email || 'test@example.com',
       token: 'mock_jwt_token'
@@ -104,7 +130,8 @@ const mockRequest = (config) => {
   }
   // Companies routes
   else if (url.includes('/api/companies')) {
-    let companies = JSON.parse(localStorage.getItem('mock_companies') || '[]');
+    const companiesKey = getCompaniesKey(activeEmail);
+    let companies = JSON.parse(localStorage.getItem(companiesKey) || '[]');
 
     if (method === 'get') {
       responseData = companies;
@@ -119,13 +146,13 @@ const mockRequest = (config) => {
           }
           return c;
         });
-        localStorage.setItem('mock_companies', JSON.stringify(companies));
+        localStorage.setItem(companiesKey, JSON.stringify(companies));
         responseData = companies.find(c => c._id === companyId);
       } else {
         // Otherwise, creating a new company
         const newCompany = { ...data, _id: 'mock_co_' + Date.now(), rounds: [], notes: {} };
         companies.push(newCompany);
-        localStorage.setItem('mock_companies', JSON.stringify(companies));
+        localStorage.setItem(companiesKey, JSON.stringify(companies));
         responseData = newCompany;
       }
     } else if (method === 'put') {
@@ -139,7 +166,7 @@ const mockRequest = (config) => {
           }
           return c;
         });
-        localStorage.setItem('mock_companies', JSON.stringify(companies));
+        localStorage.setItem(companiesKey, JSON.stringify(companies));
         responseData = companies.find(c => c._id === companyId);
       } else {
         // Otherwise, updating company basic info
@@ -151,27 +178,28 @@ const mockRequest = (config) => {
           }
           return c;
         });
-        localStorage.setItem('mock_companies', JSON.stringify(companies));
+        localStorage.setItem(companiesKey, JSON.stringify(companies));
         responseData = companies.find(c => c._id === companyId);
       }
     } else if (method === 'delete') {
       const matches = url.match(/\/api\/companies\/([^\/]+)/);
       const companyId = matches[1];
       companies = companies.filter(c => c._id !== companyId);
-      localStorage.setItem('mock_companies', JSON.stringify(companies));
+      localStorage.setItem(companiesKey, JSON.stringify(companies));
       responseData = { success: true };
     }
   }
   // DSA routes
   else if (url.includes('/api/dsa')) {
-    let dsa = JSON.parse(localStorage.getItem('mock_dsa') || '[]');
+    const dsaKey = getDsaKey(activeEmail);
+    let dsa = JSON.parse(localStorage.getItem(dsaKey) || '[]');
 
     if (method === 'get') {
       responseData = dsa;
     } else if (method === 'post') {
       const newDsa = { ...data, _id: 'mock_dsa_' + Date.now() };
       dsa.push(newDsa);
-      localStorage.setItem('mock_dsa', JSON.stringify(dsa));
+      localStorage.setItem(dsaKey, JSON.stringify(dsa));
       responseData = newDsa;
     } else if (method === 'put') {
       const matches = url.match(/\/api\/dsa\/([^\/]+)/);
@@ -182,20 +210,22 @@ const mockRequest = (config) => {
         }
         return d;
       });
-      localStorage.setItem('mock_dsa', JSON.stringify(dsa));
+      localStorage.setItem(dsaKey, JSON.stringify(dsa));
       responseData = dsa.find(d => d._id === dsaId);
     } else if (method === 'delete') {
       const matches = url.match(/\/api\/dsa\/([^\/]+)/);
       const dsaId = matches[1];
       dsa = dsa.filter(d => d._id !== dsaId);
-      localStorage.setItem('mock_dsa', JSON.stringify(dsa));
+      localStorage.setItem(dsaKey, JSON.stringify(dsa));
       responseData = { success: true };
     }
   }
   // Dashboard stats route
   else if (url.includes('/api/dashboard/stats')) {
-    const companies = JSON.parse(localStorage.getItem('mock_companies') || '[]');
-    const dsa = JSON.parse(localStorage.getItem('mock_dsa') || '[]');
+    const companiesKey = getCompaniesKey(activeEmail);
+    const dsaKey = getDsaKey(activeEmail);
+    const companies = JSON.parse(localStorage.getItem(companiesKey) || '[]');
+    const dsa = JSON.parse(localStorage.getItem(dsaKey) || '[]');
 
     const totalApplications = companies.length;
     const inProgress = companies.filter(c => c.status === 'Interview' || c.status === 'Applied').length;
