@@ -10,8 +10,8 @@ echo.
 cd /d "c:\Users\pc\.gemini\antigravity\scratch\my2nd project"
 
 :: Automatically launch the default web browser to the localhost page
-echo Opening browser to http://localhost:5180...
-start http://localhost:5180
+echo Opening browser to http://localhost:5173...
+start http://localhost:5173
 
 :: Start both backend and frontend servers
 npm start
