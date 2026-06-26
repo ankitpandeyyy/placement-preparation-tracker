@@ -939,7 +939,7 @@ Provide specific, actionable advice on resume writing, portfolio building, and j
                     <input 
                       type="email" 
                       name="email"
-                      placeholder="e.g. ankit.dev@example.com"
+                      placeholder="e.g. ap1667130@gmail.com"
                       value={resume.personalInfo.email}
                       onChange={handlePersonalChange}
                       className="w-full px-3.5 py-2 border border-border rounded-lg bg-bg text-text focus:outline-none focus:border-blue-600 text-sm transition-colors"
