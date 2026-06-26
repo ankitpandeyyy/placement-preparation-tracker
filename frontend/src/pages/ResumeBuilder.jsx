@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, Trash2, ArrowUp, ArrowDown, Download, Upload, 
   Eye, FileText, Briefcase, GraduationCap, Code, 
   User, CheckCircle, RefreshCw, Star, Sparkles, ExternalLink,
-  Target, AlertTriangle, Lightbulb, Check, ChevronRight
+  Target, AlertTriangle, Lightbulb, Check, ChevronRight,
+  MessageSquare, Send, X, Settings, Bot, Loader2, Info
 } from 'lucide-react';
 
 // Default empty state
@@ -161,6 +162,29 @@ export default function ResumeBuilder() {
   const [missingKeywords, setMissingKeywords] = useState([]);
   const [weakWordsFound, setWeakWordsFound] = useState([]);
   const [atsAudit, setAtsAudit] = useState([]);
+  
+  // AI Feature States
+  const [geminiKey, setGeminiKey] = useState(() => {
+    return localStorage.getItem('dh_trial_gemini_key') || '';
+  });
+  const [aiLoading, setAiLoading] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([
+    { 
+      role: 'assistant', 
+      content: "Hi Ankit! I'm PrepCoach AI, your interactive career assistant. Paste a target Job Description in the ATS tab to evaluate your match rate, or talk to me to optimize your resume bullet points. To activate full generative AI power, click the settings icon ⚙️ above and enter a free Gemini API Key!" 
+    }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  
+  const messagesEndRef = useRef(null);
+
+  // Auto-scroll chat
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
 
   // Sync to local storage & calculate stats
   useEffect(() => {
@@ -319,7 +343,7 @@ export default function ResumeBuilder() {
       });
     }
 
-    // Template warnings for legacy parsers
+    // Template warnings for legacy portfolios
     if (template === 'modern' && matchScore < 50) {
       audits.push({ 
         title: 'Multi-column template notice', 
@@ -329,6 +353,168 @@ export default function ResumeBuilder() {
     }
 
     setAtsAudit(audits);
+  };
+
+  // REST API Client Call to free Gemini-1.5-flash
+  const queryGemini = async (prompt) => {
+    if (!geminiKey) throw new Error('No API key provided.');
+    
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: prompt }]
+            }
+          ]
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData?.error?.message || `Gemini API error (Status: ${response.status})`);
+    }
+
+    const data = await response.json();
+    return data.candidates[0].content.parts[0].text;
+  };
+
+  // Real-time AI Resume Tailoring (Generative vs. NLP Rule-based Fallback)
+  const tailorResume = async () => {
+    if (!jobDescription.trim()) {
+      alert('Please enter a target Job Description first.');
+      return;
+    }
+
+    setAiLoading(true);
+
+    try {
+      if (geminiKey) {
+        // Real Generative AI Mode
+        const prompt = `You are a professional resume writer and recruitment system auditor. 
+Here is a candidate's resume in JSON format:
+${JSON.stringify(resume, null, 2)}
+
+Here is the target job description:
+${jobDescription}
+
+Please optimize the resume JSON to match this job description. Strictly follow these constraints:
+1. Keep the name, email, phone, location, and dates EXACTLY the same. Do not make up fake jobs, companies, or universities.
+2. Rewrite the professional summary to specifically align with the key themes in the job description.
+3. Tailor experience and project descriptions to emphasize accomplishments, metrics, and technologies mentioned in the JD.
+4. Integrate missing skills naturally into the skills lists.
+5. Return ONLY a valid JSON string starting with "{" and ending with "}" representing the modified resume. Do not include markdown codeblocks (like \`\`\`json), comments, or conversational text.`;
+
+        const responseText = await queryGemini(prompt);
+        let cleanedText = responseText.trim();
+        if (cleanedText.startsWith('```')) {
+          cleanedText = cleanedText
+            .replace(/^```json/, '')
+            .replace(/^```/, '')
+            .replace(/```$/, '')
+            .trim();
+        }
+
+        const parsedResume = JSON.parse(cleanedText);
+        if (parsedResume && parsedResume.personalInfo) {
+          setResume(parsedResume);
+          alert('Success! Your resume has been customized and tailored to this job description using Google Gemini AI.');
+        } else {
+          throw new Error('Parsed response does not match resume schema.');
+        }
+      } else {
+        // Offline / Hybrid NLP Fallback Mode (Simulated AI)
+        // Simulates latency
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Dynamic matching and insertion
+        setResume(prev => {
+          const tailored = JSON.parse(JSON.stringify(prev)); // Deep clone
+          
+          // Tailor summary
+          const targetTerms = missingKeywords.slice(0, 3).join(', ');
+          if (targetTerms) {
+            tailored.personalInfo.summary = `Detail-oriented professional with specialized focus on ${targetTerms}. ` + tailored.personalInfo.summary;
+          }
+
+          // Inject missing keywords into skills
+          if (missingKeywords.length > 0) {
+            const injectedList = missingKeywords.slice(0, 5).join(', ');
+            if (tailored.skills.length > 0) {
+              tailored.skills[0].list = injectedList + ', ' + tailored.skills[0].list;
+            } else {
+              tailored.skills.push({
+                id: 'skill-tailored',
+                category: 'Key Competencies',
+                list: injectedList
+              });
+            }
+          }
+
+          return tailored;
+        });
+
+        alert('Resume updated locally! (Simulated Mode). Paste a free Gemini API Key in the chat toolkit settings to unlock advanced LLM-powered content rewrite capability.');
+      }
+    } catch (error) {
+      console.error(error);
+      alert(`AI Tailoring failed: ${error.message || 'Check your internet connection or API Key.'}`);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // Chatbot send handler
+  const sendChatMessage = async (e) => {
+    e?.preventDefault();
+    if (!chatInput.trim() || chatLoading) return;
+
+    const userMsg = chatInput.trim();
+    setChatInput('');
+    setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    setChatLoading(true);
+
+    try {
+      if (geminiKey) {
+        // Real-time LLM chat mode
+        const systemPrompt = `You are "PrepCoach AI", a helpful, professional career coach. 
+The user's name is ${resume.personalInfo.fullName || 'Ankit'}. 
+Here is their current resume JSON context:
+${JSON.stringify(resume, null, 2)}
+
+Provide specific, actionable advice on resume writing, portfolio building, and job interviewing. Keep responses concise, supportive, and formatted in markdown. If asked to write bullet points, ensure they start with strong action verbs.`;
+
+        // Format history
+        const promptText = `${systemPrompt}\n\nUser: ${userMsg}\nAssistant:`;
+        const aiResponse = await queryGemini(promptText);
+        setChatMessages(prev => [...prev, { role: 'assistant', content: aiResponse }]);
+      } else {
+        // Local Rule-based mock chatbot
+        await new Promise(resolve => setTimeout(resolve, 800));
+        let reply = "I'm in local offline mode. To chat dynamically, click the settings icon ⚙️ above and enter a free Google Gemini API Key. \n\nHere are some quick shortcuts you can ask me:\n1. Type **'verbs'** to see action verb suggestions.\n2. Type **'summary'** to see professional summary templates.\n3. Type **'dsa'** to get placement interview practice tips.";
+        
+        const lowerInput = userMsg.toLowerCase();
+        if (lowerInput.includes('verb')) {
+          reply = "Use strong action verbs to start your experience bullets. Avoid passive terms:\n- *Created* ➔ **Architected** or **Engineered**\n- *Managed* ➔ **Spearheaded** or **Orchestrated**\n- *Helped* ➔ **Collaborated** or **Facilitated**\n- *Used* ➔ **Leveraged** or **Deployed**";
+        } else if (lowerInput.includes('summary')) {
+          reply = "Here is a standard template for a summary:\n\n*\"Highly motivated [Professional Title] with a strong foundation in [Skill 1] and [Skill 2]. Experienced in building [types of applications] with clean code. Passionate about solving complex algorithms and contributing in collaborative development teams.\"*";
+        } else if (lowerInput.includes('dsa') || lowerInput.includes('interview')) {
+          reply = "Top placement interview preparation tips:\n1. **Mock Code**: Always speak out loud while writing algorithms. Explain time and space complexity ($O(N)$ or $O(1)$) before coding.\n2. **STAR Method**: Describe projects using **Situation, Task, Action, Result**.\n3. **Follow up**: Prepare 2 insightful questions to ask the interviewer.";
+        }
+
+        setChatMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+      }
+    } catch (err) {
+      setChatMessages(prev => [...prev, { role: 'assistant', content: `Chat error: ${err.message || 'API connection failed.'}` }]);
+    } finally {
+      setChatLoading(false);
+    }
   };
 
   // State handlers for Personal Info
@@ -512,7 +698,7 @@ export default function ResumeBuilder() {
           </div>
           <div>
             <h1 className="text-sm font-bold tracking-tight">Custom Software Developer — Trial Task</h1>
-            <p className="text-xs text-slate-400">Unique Offline ATS Scanner & Keyword Optimizer. Perfect vector PDF generation.</p>
+            <p className="text-xs text-slate-400">Unique Offline ATS Scanner & Live Gemini AI Coach. Perfect vector PDF generation.</p>
           </div>
         </div>
         
@@ -599,7 +785,7 @@ export default function ResumeBuilder() {
               <span className="text-xs font-bold uppercase tracking-wider text-text-muted">Profile Strength Score</span>
               <span className={`text-xs font-bold px-2 py-0.5 rounded ${
                 strength > 80 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300' :
-                strength > 50 ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300' :
+                strength > 50 ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-emerald-300' :
                 'bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-300'
               }`}>
                 {strength}% {strength === 100 ? 'Complete!' : 'In Progress'}
@@ -1250,20 +1436,20 @@ export default function ResumeBuilder() {
               </div>
             )}
 
-            {/* 6. ATS OPTIMIZER TAB */}
+            {/* 6. ATS OPTIMIZER & AI TAILOR TAB */}
             {activeTab === 'ats' && (
               <div className="space-y-6">
                 <h3 className="text-base font-bold text-text mb-2 flex items-center gap-2 border-b border-border pb-1">
-                  <Target className="w-5 h-5 text-orange-500" />
-                  ATS scanner & Keyword Matcher
+                  <Target className="w-5 h-5 text-orange-500 animate-pulse" />
+                  ATS Scanner & AI Matcher
                 </h3>
 
                 <div className="bg-orange-500/10 border border-orange-500/35 p-4 rounded-xl">
                   <div className="flex gap-2">
                     <Lightbulb className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
-                    <p className="text-xs text-text-muted leading-relaxed">
-                      Most medium-to-large companies use **Applicant Tracking Systems (ATS)** to filter resumes. Paste your target Job Description below; we will extract the key competencies in real-time, compute a matching score, and show you exactly what words to add to pass the filter!
-                    </p>
+                    <div className="text-xs text-text-muted leading-relaxed">
+                      <p>Most medium-to-large companies use **Applicant Tracking Systems (ATS)** to filter resumes. Paste your target Job Description below; we will extract the key competencies in real-time, compute a matching score, and show you exactly what words to add to pass the filter!</p>
+                    </div>
                   </div>
                 </div>
 
@@ -1279,36 +1465,48 @@ export default function ResumeBuilder() {
                   ></textarea>
                 </div>
 
-                {/* Score and Keywords Section */}
+                {/* Score, AI Tailor Button and Keywords Section */}
                 {jobDescription.trim().length > 0 && (
                   <div className="space-y-6 border-t border-border pt-4">
                     
-                    {/* Score Bar */}
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 border border-border bg-bg/50 rounded-xl">
+                    {/* Score Bar & AI Tailor CTA */}
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 border border-border bg-bg/50 rounded-xl relative overflow-hidden">
                       <div className="text-center md:text-left">
                         <h4 className="text-sm font-bold text-text">Job Match Index</h4>
                         <p className="text-xs text-text-muted mt-0.5">Based on relevant keyword matching densities.</p>
                       </div>
 
-                      <div className="flex items-center gap-3">
-                        <div className="relative flex items-center justify-center">
-                          <div className={`w-16 h-16 rounded-full border-4 flex items-center justify-center font-bold text-lg ${
-                            atsScore > 75 ? 'border-emerald-500 text-emerald-500' :
-                            atsScore > 40 ? 'border-amber-500 text-amber-500' :
-                            'border-red-500 text-red-500'
-                          }`}>
-                            {atsScore}%
+                      <div className="flex flex-wrap items-center justify-center gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="relative flex items-center justify-center">
+                            <div className={`w-16 h-16 rounded-full border-4 flex items-center justify-center font-bold text-lg ${
+                              atsScore > 75 ? 'border-emerald-500 text-emerald-500' :
+                              atsScore > 40 ? 'border-amber-500 text-amber-500' :
+                              'border-red-500 text-red-500'
+                            }`}>
+                              {atsScore}%
+                            </div>
                           </div>
                         </div>
-                        <div className="text-xs font-semibold">
-                          {atsScore > 75 ? (
-                            <span className="text-emerald-500">Ready to Apply! (High Match)</span>
-                          ) : atsScore > 40 ? (
-                            <span className="text-amber-500">Moderate Match. Add keywords.</span>
+
+                        {/* Standout AI Auto-Tailor Button */}
+                        <button
+                          onClick={tailorResume}
+                          disabled={aiLoading}
+                          className="bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-bold text-xs py-2.5 px-4 rounded-lg flex items-center gap-1.5 shadow-lg shadow-orange-500/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                        >
+                          {aiLoading ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              Tailoring Resume...
+                            </>
                           ) : (
-                            <span className="text-red-500">Low Match. Optimize details.</span>
+                            <>
+                              <Sparkles className="w-3.5 h-3.5" />
+                              Auto-Tailor Resume with AI
+                            </>
                           )}
-                        </div>
+                        </button>
                       </div>
                     </div>
 
@@ -1930,6 +2128,164 @@ export default function ResumeBuilder() {
         </div>
 
       </div>
+
+      {/* CHATBOT TRIGGER BUTTON */}
+      <button 
+        onClick={() => setIsChatOpen(prev => !prev)}
+        className="no-print fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-full flex items-center justify-center shadow-2xl transition-transform hover:scale-110 active:scale-95 cursor-pointer z-50 group"
+        title="Open Career Coach Chat"
+      >
+        {isChatOpen ? <X className="w-6 h-6" /> : <Bot className="w-6 h-6 group-hover:rotate-12 transition-transform" />}
+        {!isChatOpen && (
+          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-orange-500 border-2 border-surface rounded-full"></span>
+        )}
+      </button>
+
+      {/* CHAT WINDOW INTERFACE */}
+      {isChatOpen && (
+        <div className="no-print fixed bottom-24 right-6 w-[90vw] sm:w-[400px] h-[500px] bg-surface border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden z-50 transition-all duration-300 transform scale-100 origin-bottom-right">
+          
+          {/* Chat Header */}
+          <div className="p-4 bg-gradient-to-r from-slate-900 to-indigo-950 text-white flex justify-between items-center shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="relative">
+                <Bot className="w-6 h-6 text-blue-400" />
+                <span className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full ${geminiKey ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></span>
+              </div>
+              <div>
+                <h4 className="text-sm font-bold tracking-tight">PrepCoach AI</h4>
+                <p className="text-[10px] text-slate-400 font-medium">{geminiKey ? 'Powered by Google Gemini' : 'Offline Local Mode'}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setIsSettingsOpen(prev => !prev)}
+                className={`p-1.5 rounded-lg hover:bg-white/10 transition-colors ${isSettingsOpen ? 'bg-white/15' : ''}`}
+                title="Toggle Gemini API Key Settings"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={() => setIsChatOpen(false)}
+                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Chat Settings Sub-Panel */}
+          {isSettingsOpen && (
+            <div className="p-4 bg-slate-900 text-slate-200 border-b border-slate-800 shrink-0 text-xs space-y-2.5">
+              <div className="flex justify-between items-center">
+                <strong className="font-bold flex items-center gap-1"><Settings className="w-3.5 h-3.5 text-blue-400" /> Gemini API Config</strong>
+                <a 
+                  href="https://aistudio.google.com/app/apikey" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-blue-400 hover:underline flex items-center gap-0.5 font-semibold"
+                >
+                  Get Free Key <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+              <p className="text-[10.5px] text-slate-400 leading-relaxed">
+                Gemini API has a **100% free tier** (15 requests/min). Enter your key below to unlock LLM features. It is saved in your browser local-storage securely.
+              </p>
+              <div className="flex gap-2">
+                <input 
+                  type="password" 
+                  value={geminiKey}
+                  onChange={(e) => {
+                    setGeminiKey(e.target.value);
+                    localStorage.setItem('dh_trial_gemini_key', e.target.value);
+                  }}
+                  placeholder="Paste AI Studio Key here..."
+                  className="flex-1 px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-white font-mono text-[11px] focus:outline-none focus:border-blue-600"
+                />
+                {geminiKey && (
+                  <button 
+                    onClick={() => {
+                      setGeminiKey('');
+                      localStorage.removeItem('dh_trial_gemini_key');
+                    }}
+                    className="px-2 bg-red-950/40 hover:bg-red-950/70 border border-red-900/50 text-red-300 font-bold rounded-lg transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Messages Window */}
+          <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50 dark:bg-slate-950/20">
+            {chatMessages.map((msg, idx) => (
+              <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] rounded-2xl p-3 text-xs leading-relaxed ${
+                  msg.role === 'user' 
+                    ? 'bg-blue-600 text-white rounded-br-none shadow-md' 
+                    : 'bg-surface text-text border border-border rounded-bl-none shadow-sm whitespace-pre-wrap'
+                }`}>
+                  {msg.content}
+                </div>
+              </div>
+            ))}
+            {chatLoading && (
+              <div className="flex justify-start">
+                <div className="max-w-[85%] rounded-2xl p-3 text-xs bg-surface border border-border rounded-bl-none flex items-center gap-1.5 text-text-muted shadow-sm">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />
+                  PrepCoach is typing...
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Chat Quick Prompts list */}
+          {!chatLoading && (
+            <div className="px-4 py-2 bg-bg/40 border-t border-border flex gap-1.5 overflow-x-auto scrollbar-none shrink-0">
+              {[
+                { label: 'Suggest verbs', text: 'verbs' },
+                { label: 'Summary templates', text: 'summary' },
+                { label: 'Interview tips', text: 'dsa' }
+              ].map(qp => (
+                <button
+                  key={qp.text}
+                  onClick={() => {
+                    setChatInput(qp.text);
+                    // trigger send directly
+                    setTimeout(() => sendChatMessage(), 50);
+                  }}
+                  className="bg-surface hover:bg-bg border border-border text-text-muted hover:text-text text-[10.5px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                >
+                  {qp.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Message Input Box */}
+          <form onSubmit={sendChatMessage} className="p-3 border-t border-border bg-surface flex gap-2 shrink-0">
+            <input 
+              type="text" 
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="Ask PrepCoach anything..."
+              className="flex-1 px-3.5 py-2 border border-border rounded-xl bg-bg text-text focus:outline-none focus:border-blue-600 text-xs transition-colors"
+            />
+            <button 
+              type="submit" 
+              disabled={!chatInput.trim() || chatLoading}
+              className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white w-9 h-9 rounded-xl flex items-center justify-center shadow transition-all hover:scale-105 active:scale-95 shrink-0 cursor-pointer"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </form>
+
+        </div>
+      )}
+
     </div>
   );
 }
