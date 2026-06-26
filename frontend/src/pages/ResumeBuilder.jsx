@@ -750,24 +750,13 @@ Provide specific, actionable advice on resume writing, portfolio building, and j
           </div>
         </div>
         
-        {/* Creator reachable info & Required Button */}
+        {/* Creator reachable info */}
         <div className="flex items-center flex-wrap gap-4 justify-end">
-          <div className="text-right text-xs md:border-r md:border-slate-800 md:pr-4">
+          <div className="text-right text-xs">
             <span className="text-slate-400">Developer:</span> <strong className="text-slate-200">Ankit Pandey</strong>
             <span className="mx-2 text-slate-600">|</span>
             <span className="text-slate-400">Email:</span> <a href="mailto:ap1667130@gmail.com" className="text-blue-400 hover:underline">ap1667130@gmail.com</a>
           </div>
-
-          <a 
-            href="https://digitalheroesco.com" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-2 px-4 rounded-lg flex items-center gap-1.5 shadow transition-all hover:scale-105"
-            id="digital-heroes-btn"
-          >
-            Built for Digital Heroes
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
         </div>
       </div>
 
