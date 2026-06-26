@@ -152,11 +152,11 @@ export default function ResumeBuilder() {
   const [template, setTemplate] = useState('modern'); // 'modern', 'serif', 'minimal'
   const [strength, setStrength] = useState(0);
   const [checklist, setChecklist] = useState([]);
+  const [forceSinglePage, setForceSinglePage] = useState(false);
+  const [highlightedFields, setHighlightedFields] = useState({ summary: false, skills: false });
   
   // ATS Specific States
-  const [jobDescription, setJobDescription] = useState(() => {
-    return localStorage.getItem('dh_trial_jd') || '';
-  });
+  const [jobDescription, setJobDescription] = useState('');
   const [atsScore, setAtsScore] = useState(0);
   const [matchedKeywords, setMatchedKeywords] = useState([]);
   const [missingKeywords, setMissingKeywords] = useState([]);
@@ -230,7 +230,6 @@ export default function ResumeBuilder() {
 
   // Client-side NLP keyword & match rate analysis
   const runAtsAnalysis = () => {
-    localStorage.setItem('dh_trial_jd', jobDescription);
     if (!jobDescription.trim()) {
       setAtsScore(0);
       setMatchedKeywords([]);
@@ -468,6 +467,11 @@ Please optimize the resume JSON to match this job description. Strictly follow t
         const parsedResume = JSON.parse(cleanedText);
         if (parsedResume && parsedResume.personalInfo) {
           setResume(parsedResume);
+          // Highlight modified sections for 3 seconds
+          setHighlightedFields({ summary: true, skills: true });
+          setTimeout(() => {
+            setHighlightedFields({ summary: false, skills: false });
+          }, 3000);
           alert(`Success! Your resume has been customized and tailored to this job description using ${geminiKey ? 'Google Gemini' : 'Groq Llama 3'} AI.`);
         } else {
           throw new Error('Parsed response does not match resume schema.');
@@ -503,6 +507,12 @@ Please optimize the resume JSON to match this job description. Strictly follow t
 
           return tailored;
         });
+
+        // Highlight modified sections for 3 seconds
+        setHighlightedFields({ summary: true, skills: true });
+        setTimeout(() => {
+          setHighlightedFields({ summary: false, skills: false });
+        }, 3000);
 
         alert('Resume updated locally! (Simulated Mode). Paste a free Gemini or Groq API Key in the chat toolkit settings to unlock advanced LLM-powered content rewrite capability.');
       }
@@ -1672,6 +1682,16 @@ Provide specific, actionable advice on resume writing, portfolio building, and j
 
             {/* Template & Print Controls */}
             <div className="flex items-center gap-3">
+              <label className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer select-none bg-bg hover:bg-bg/85 border border-border px-3 py-1.5 rounded-lg text-text-muted hover:text-text">
+                <input 
+                  type="checkbox" 
+                  checked={forceSinglePage}
+                  onChange={(e) => setForceSinglePage(e.target.checked)}
+                  className="rounded text-blue-600 focus:ring-blue-500 border-border"
+                />
+                Single Page Fit
+              </label>
+
               <div className="flex bg-bg rounded-lg border border-border p-0.5">
                 {[
                   { id: 'modern', name: 'Modern' },
@@ -1705,6 +1725,62 @@ Provide specific, actionable advice on resume writing, portfolio building, and j
 
           {/* Actual Printable Page Area */}
           <div className="flex-1 p-6 flex justify-center items-start">
+            {forceSinglePage && (
+              <style>{`
+                .resume-sheet {
+                  height: 297mm !important;
+                  min-height: 297mm !important;
+                  max-height: 297mm !important;
+                  overflow: hidden !important;
+                  padding: 1.5rem !important;
+                }
+                .resume-sheet h2 {
+                  font-size: 1.5rem !important;
+                }
+                .resume-sheet h3 {
+                  margin-top: 0.5rem !important;
+                  margin-bottom: 0.25rem !important;
+                }
+                .resume-sheet p, .resume-sheet li, .resume-sheet span, .resume-sheet a {
+                  font-size: 10.5px !important;
+                  line-height: 1.35 !important;
+                  margin-bottom: 0.1rem !important;
+                }
+                .resume-sheet ul {
+                  margin-top: 0.15rem !important;
+                  margin-bottom: 0.15rem !important;
+                }
+                .resume-sheet .grid {
+                  gap: 0.75rem !important;
+                }
+                .resume-sheet .space-y-6 > * + * {
+                  margin-top: 0.5rem !important;
+                }
+                .resume-sheet .space-y-5 > * + * {
+                  margin-top: 0.4rem !important;
+                }
+                .resume-sheet .space-y-4 > * + * {
+                  margin-top: 0.3rem !important;
+                }
+                .resume-sheet .page-break-avoid {
+                  page-break-inside: avoid !important;
+                }
+                @media print {
+                  html, body {
+                    height: 297mm !important;
+                    overflow: hidden !important;
+                  }
+                  .resume-sheet {
+                    border: none !important;
+                    box-shadow: none !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                    padding: 1.5rem !important;
+                    margin: 0 !important;
+                  }
+                }
+              `}</style>
+            )}
             
             {/* The A4 Canvas Sheet */}
             <div className={`resume-sheet w-full max-w-[8.27in] bg-white text-black p-8 md:p-12 shadow-xl border border-slate-200/60 rounded-sm font-sans min-h-[11.69in] transition-all text-[13px] leading-relaxed select-text`}>
@@ -1742,7 +1818,11 @@ Provide specific, actionable advice on resume writing, portfolio building, and j
                   {/* Summary Block */}
                   {resume.personalInfo.summary && (
                     <div className="page-break-avoid">
-                      <p className="text-slate-700 italic leading-relaxed text-[12.5px] border-l-4 border-blue-600 pl-4 bg-slate-50 py-2.5 rounded-r">
+                      <p className={`text-slate-700 italic leading-relaxed text-[12.5px] border-l-4 pl-4 py-2.5 rounded-r transition-all duration-500 ${
+                        highlightedFields.summary 
+                          ? 'bg-amber-100 text-amber-950 font-bold scale-[1.01] shadow-md border-l-amber-500 ring-2 ring-amber-400' 
+                          : 'bg-slate-50 border-l-blue-600'
+                      }`}>
                         {resume.personalInfo.summary}
                       </p>
                     </div>
@@ -1756,7 +1836,11 @@ Provide specific, actionable advice on resume writing, portfolio building, and j
                       
                       {/* Skills Section */}
                       {resume.skills.length > 0 && (
-                        <div className="space-y-3 page-break-avoid">
+                        <div className={`space-y-3 page-break-avoid p-1.5 rounded transition-all duration-500 ${
+                          highlightedFields.skills 
+                            ? 'bg-amber-100 text-amber-950 scale-[1.02] shadow-md ring-2 ring-amber-400' 
+                            : ''
+                        }`}>
                           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-b-2 border-slate-200 pb-1 flex items-center gap-1.5">
                             <Star className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                             Skills
@@ -1911,7 +1995,11 @@ Provide specific, actionable advice on resume writing, portfolio building, and j
                   {/* Summary Block */}
                   {resume.personalInfo.summary && (
                     <div className="page-break-avoid">
-                      <p className="text-slate-800 leading-relaxed text-[12.5px] text-center max-w-2xl mx-auto italic">
+                      <p className={`text-slate-800 leading-relaxed text-[12.5px] text-center max-w-2xl mx-auto italic transition-all duration-500 p-1.5 rounded ${
+                        highlightedFields.summary 
+                          ? 'bg-amber-100 text-amber-950 font-bold scale-[1.01] shadow-md ring-2 ring-amber-400' 
+                          : ''
+                      }`}>
                         {resume.personalInfo.summary}
                       </p>
                     </div>
@@ -2008,7 +2096,11 @@ Provide specific, actionable advice on resume writing, portfolio building, and j
 
                   {/* Skills Section */}
                   {resume.skills.length > 0 && (
-                    <div className="space-y-2.5 page-break-avoid">
+                    <div className={`space-y-2.5 page-break-avoid p-1.5 rounded transition-all duration-500 ${
+                      highlightedFields.skills 
+                        ? 'bg-amber-100 text-amber-950 scale-[1.02] shadow-md ring-2 ring-amber-400' 
+                        : ''
+                    }`}>
                       <h3 className="text-xs font-bold uppercase tracking-widest text-slate-950 border-b border-slate-900 pb-0.5">
                         Skills Summary
                       </h3>
@@ -2049,7 +2141,11 @@ Provide specific, actionable advice on resume writing, portfolio building, and j
                   {/* Summary Block */}
                   {resume.personalInfo.summary && (
                     <div className="page-break-avoid">
-                      <p className="text-[12px] text-slate-600 leading-relaxed">
+                      <p className={`text-[12px] text-slate-600 leading-relaxed transition-all duration-500 p-1.5 rounded ${
+                        highlightedFields.summary 
+                          ? 'bg-amber-100 text-amber-950 font-bold scale-[1.01] shadow-md ring-2 ring-amber-400' 
+                          : ''
+                      }`}>
                         {resume.personalInfo.summary}
                       </p>
                     </div>
@@ -2144,7 +2240,11 @@ Provide specific, actionable advice on resume writing, portfolio building, and j
 
                   {/* Skills */}
                   {resume.skills.length > 0 && (
-                    <div className="space-y-3 page-break-avoid">
+                    <div className={`space-y-3 page-break-avoid p-1.5 rounded transition-all duration-500 ${
+                      highlightedFields.skills 
+                        ? 'bg-amber-100 text-amber-950 scale-[1.02] shadow-md ring-2 ring-amber-400' 
+                        : ''
+                    }`}>
                       <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-100 pb-0.5">
                         Skills
                       </h3>
