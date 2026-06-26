@@ -917,7 +917,7 @@ Provide specific, actionable advice on resume writing, portfolio building, and j
                     <input 
                       type="text" 
                       name="fullName"
-                      placeholder="e.g. Ankit Pandey"
+                      placeholder="e.g. Your Name"
                       value={resume.personalInfo.fullName}
                       onChange={handlePersonalChange}
                       className="w-full px-3.5 py-2 border border-border rounded-lg bg-bg text-text focus:outline-none focus:border-blue-600 text-sm transition-colors"
@@ -939,7 +939,7 @@ Provide specific, actionable advice on resume writing, portfolio building, and j
                     <input 
                       type="email" 
                       name="email"
-                      placeholder="e.g. ap1667130@gmail.com"
+                      placeholder="e.g. email@example.com"
                       value={resume.personalInfo.email}
                       onChange={handlePersonalChange}
                       className="w-full px-3.5 py-2 border border-border rounded-lg bg-bg text-text focus:outline-none focus:border-blue-600 text-sm transition-colors"
@@ -972,7 +972,7 @@ Provide specific, actionable advice on resume writing, portfolio building, and j
                     <input 
                       type="text" 
                       name="website"
-                      placeholder="e.g. ankitpandey.dev"
+                      placeholder="e.g. portfolio.com"
                       value={resume.personalInfo.website}
                       onChange={handlePersonalChange}
                       className="w-full px-3.5 py-2 border border-border rounded-lg bg-bg text-text focus:outline-none focus:border-blue-600 text-sm transition-colors"
@@ -983,7 +983,7 @@ Provide specific, actionable advice on resume writing, portfolio building, and j
                     <input 
                       type="text" 
                       name="github"
-                      placeholder="e.g. github.com/ankitpandeyyy"
+                      placeholder="e.g. github.com/username"
                       value={resume.personalInfo.github}
                       onChange={handlePersonalChange}
                       className="w-full px-3.5 py-2 border border-border rounded-lg bg-bg text-text focus:outline-none focus:border-blue-600 text-sm transition-colors"
@@ -994,7 +994,7 @@ Provide specific, actionable advice on resume writing, portfolio building, and j
                     <input 
                       type="text" 
                       name="linkedin"
-                      placeholder="e.g. linkedin.com/in/ankitpandey"
+                      placeholder="e.g. linkedin.com/in/username"
                       value={resume.personalInfo.linkedin}
                       onChange={handlePersonalChange}
                       className="w-full px-3.5 py-2 border border-border rounded-lg bg-bg text-text focus:outline-none focus:border-blue-600 text-sm transition-colors"
