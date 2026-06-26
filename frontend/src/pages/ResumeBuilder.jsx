@@ -167,13 +167,16 @@ export default function ResumeBuilder() {
   const [geminiKey, setGeminiKey] = useState(() => {
     return localStorage.getItem('dh_trial_gemini_key') || '';
   });
+  const [groqKey, setGroqKey] = useState(() => {
+    return localStorage.getItem('dh_trial_groq_key') || import.meta.env.VITE_GROQ_API_KEY || '';
+  });
   const [aiLoading, setAiLoading] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState([
     { 
       role: 'assistant', 
-      content: "Hi Ankit! I'm PrepCoach AI, your interactive career assistant. Paste a target Job Description in the ATS tab to evaluate your match rate, or talk to me to optimize your resume bullet points. To activate full generative AI power, click the settings icon ⚙️ above and enter a free Gemini API Key!" 
+      content: "Hi Ankit! I'm PrepCoach AI, your interactive career assistant. Paste a target Job Description in the ATS tab to evaluate your match rate, or talk to me to optimize your resume bullet points. To activate full generative AI power, click the settings icon ⚙️ above and enter a free Gemini or Groq API Key!" 
     }
   ]);
   const [chatInput, setChatInput] = useState('');
@@ -385,6 +388,41 @@ export default function ResumeBuilder() {
     return data.candidates[0].content.parts[0].text;
   };
 
+  // REST API Client Call to Groq Llama 3
+  const queryGroq = async (prompt, systemInstruction = '') => {
+    if (!groqKey) throw new Error('No Groq API key provided.');
+    
+    const messages = [];
+    if (systemInstruction) {
+      messages.push({ role: 'system', content: systemInstruction });
+    }
+    messages.push({ role: 'user', content: prompt });
+
+    const response = await fetch(
+      'https://api.groq.com/openai/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${groqKey}`
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: messages,
+          temperature: 0.2
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData?.error?.message || `Groq API error (Status: ${response.status})`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  };
+
   // Real-time AI Resume Tailoring (Generative vs. NLP Rule-based Fallback)
   const tailorResume = async () => {
     if (!jobDescription.trim()) {
@@ -395,7 +433,7 @@ export default function ResumeBuilder() {
     setAiLoading(true);
 
     try {
-      if (geminiKey) {
+      if (geminiKey || groqKey) {
         // Real Generative AI Mode
         const prompt = `You are a professional resume writer and recruitment system auditor. 
 Here is a candidate's resume in JSON format:
@@ -411,7 +449,13 @@ Please optimize the resume JSON to match this job description. Strictly follow t
 4. Integrate missing skills naturally into the skills lists.
 5. Return ONLY a valid JSON string starting with "{" and ending with "}" representing the modified resume. Do not include markdown codeblocks (like \`\`\`json), comments, or conversational text.`;
 
-        const responseText = await queryGemini(prompt);
+        let responseText = '';
+        if (geminiKey) {
+          responseText = await queryGemini(prompt);
+        } else {
+          responseText = await queryGroq(prompt);
+        }
+
         let cleanedText = responseText.trim();
         if (cleanedText.startsWith('```')) {
           cleanedText = cleanedText
@@ -424,7 +468,7 @@ Please optimize the resume JSON to match this job description. Strictly follow t
         const parsedResume = JSON.parse(cleanedText);
         if (parsedResume && parsedResume.personalInfo) {
           setResume(parsedResume);
-          alert('Success! Your resume has been customized and tailored to this job description using Google Gemini AI.');
+          alert(`Success! Your resume has been customized and tailored to this job description using ${geminiKey ? 'Google Gemini' : 'Groq Llama 3'} AI.`);
         } else {
           throw new Error('Parsed response does not match resume schema.');
         }
@@ -460,7 +504,7 @@ Please optimize the resume JSON to match this job description. Strictly follow t
           return tailored;
         });
 
-        alert('Resume updated locally! (Simulated Mode). Paste a free Gemini API Key in the chat toolkit settings to unlock advanced LLM-powered content rewrite capability.');
+        alert('Resume updated locally! (Simulated Mode). Paste a free Gemini or Groq API Key in the chat toolkit settings to unlock advanced LLM-powered content rewrite capability.');
       }
     } catch (error) {
       console.error(error);
@@ -481,7 +525,7 @@ Please optimize the resume JSON to match this job description. Strictly follow t
     setChatLoading(true);
 
     try {
-      if (geminiKey) {
+      if (geminiKey || groqKey) {
         // Real-time LLM chat mode
         const systemPrompt = `You are "PrepCoach AI", a helpful, professional career coach. 
 The user's name is ${resume.personalInfo.fullName || 'Ankit'}. 
@@ -490,14 +534,18 @@ ${JSON.stringify(resume, null, 2)}
 
 Provide specific, actionable advice on resume writing, portfolio building, and job interviewing. Keep responses concise, supportive, and formatted in markdown. If asked to write bullet points, ensure they start with strong action verbs.`;
 
-        // Format history
-        const promptText = `${systemPrompt}\n\nUser: ${userMsg}\nAssistant:`;
-        const aiResponse = await queryGemini(promptText);
+        let aiResponse = '';
+        if (geminiKey) {
+          const promptText = `${systemPrompt}\n\nUser: ${userMsg}\nAssistant:`;
+          aiResponse = await queryGemini(promptText);
+        } else {
+          aiResponse = await queryGroq(userMsg, systemPrompt);
+        }
         setChatMessages(prev => [...prev, { role: 'assistant', content: aiResponse }]);
       } else {
         // Local Rule-based mock chatbot
         await new Promise(resolve => setTimeout(resolve, 800));
-        let reply = "I'm in local offline mode. To chat dynamically, click the settings icon ⚙️ above and enter a free Google Gemini API Key. \n\nHere are some quick shortcuts you can ask me:\n1. Type **'verbs'** to see action verb suggestions.\n2. Type **'summary'** to see professional summary templates.\n3. Type **'dsa'** to get placement interview practice tips.";
+        let reply = "I'm in local offline mode. To chat dynamically, click the settings icon ⚙️ above and enter a free Google Gemini or Groq API Key. \n\nHere are some quick shortcuts you can ask me:\n1. Type **'verbs'** to see action verb suggestions.\n2. Type **'summary'** to see professional summary templates.\n3. Type **'dsa'** to get placement interview practice tips.";
         
         const lowerInput = userMsg.toLowerCase();
         if (lowerInput.includes('verb')) {
@@ -2150,11 +2198,13 @@ Provide specific, actionable advice on resume writing, portfolio building, and j
             <div className="flex items-center gap-2.5">
               <div className="relative">
                 <Bot className="w-6 h-6 text-blue-400" />
-                <span className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full ${geminiKey ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></span>
+                <span className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full ${(geminiKey || groqKey) ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></span>
               </div>
               <div>
                 <h4 className="text-sm font-bold tracking-tight">PrepCoach AI</h4>
-                <p className="text-[10px] text-slate-400 font-medium">{geminiKey ? 'Powered by Google Gemini' : 'Offline Local Mode'}</p>
+                <p className="text-[10px] text-slate-400 font-medium">
+                  {geminiKey ? 'Powered by Google Gemini' : groqKey ? 'Powered by Groq Llama 3' : 'Offline Local Mode'}
+                </p>
               </div>
             </div>
             
@@ -2162,7 +2212,7 @@ Provide specific, actionable advice on resume writing, portfolio building, and j
               <button 
                 onClick={() => setIsSettingsOpen(prev => !prev)}
                 className={`p-1.5 rounded-lg hover:bg-white/10 transition-colors ${isSettingsOpen ? 'bg-white/15' : ''}`}
-                title="Toggle Gemini API Key Settings"
+                title="Toggle AI API Key Settings"
               >
                 <Settings className="w-4 h-4" />
               </button>
@@ -2177,43 +2227,81 @@ Provide specific, actionable advice on resume writing, portfolio building, and j
 
           {/* Chat Settings Sub-Panel */}
           {isSettingsOpen && (
-            <div className="p-4 bg-slate-900 text-slate-200 border-b border-slate-800 shrink-0 text-xs space-y-2.5">
-              <div className="flex justify-between items-center">
-                <strong className="font-bold flex items-center gap-1"><Settings className="w-3.5 h-3.5 text-blue-400" /> Gemini API Config</strong>
-                <a 
-                  href="https://aistudio.google.com/app/apikey" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="text-blue-400 hover:underline flex items-center gap-0.5 font-semibold"
-                >
-                  Get Free Key <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-              <p className="text-[10.5px] text-slate-400 leading-relaxed">
-                Gemini API has a **100% free tier** (15 requests/min). Enter your key below to unlock LLM features. It is saved in your browser local-storage securely.
-              </p>
-              <div className="flex gap-2">
-                <input 
-                  type="password" 
-                  value={geminiKey}
-                  onChange={(e) => {
-                    setGeminiKey(e.target.value);
-                    localStorage.setItem('dh_trial_gemini_key', e.target.value);
-                  }}
-                  placeholder="Paste AI Studio Key here..."
-                  className="flex-1 px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-white font-mono text-[11px] focus:outline-none focus:border-blue-600"
-                />
-                {geminiKey && (
-                  <button 
-                    onClick={() => {
-                      setGeminiKey('');
-                      localStorage.removeItem('dh_trial_gemini_key');
-                    }}
-                    className="px-2 bg-red-950/40 hover:bg-red-950/70 border border-red-900/50 text-red-300 font-bold rounded-lg transition-colors"
+            <div className="p-4 bg-slate-900 text-slate-200 border-b border-slate-800 shrink-0 text-xs space-y-3.5 max-h-[220px] overflow-y-auto">
+              {/* Gemini API Key */}
+              <div className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <strong className="font-bold flex items-center gap-1"><Settings className="w-3.5 h-3.5 text-blue-400" /> Gemini API Config</strong>
+                  <a 
+                    href="https://aistudio.google.com/app/apikey" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-blue-400 hover:underline flex items-center gap-0.5 font-semibold text-[10px]"
                   >
-                    Clear
-                  </button>
-                )}
+                    Get Free Key <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                </div>
+                <div className="flex gap-2">
+                  <input 
+                    type="password" 
+                    value={geminiKey}
+                    onChange={(e) => {
+                      setGeminiKey(e.target.value);
+                      localStorage.setItem('dh_trial_gemini_key', e.target.value);
+                    }}
+                    placeholder="Paste Gemini key here..."
+                    className="flex-1 px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-white font-mono text-[11px] focus:outline-none focus:border-blue-600"
+                  />
+                  {geminiKey && (
+                    <button 
+                      onClick={() => {
+                        setGeminiKey('');
+                        localStorage.removeItem('dh_trial_gemini_key');
+                      }}
+                      className="px-2 bg-red-950/40 hover:bg-red-950/70 border border-red-900/50 text-red-300 font-bold rounded-lg transition-colors text-[10px]"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Groq API Key */}
+              <div className="space-y-1 border-t border-slate-800 pt-2">
+                <div className="flex justify-between items-center">
+                  <strong className="font-bold flex items-center gap-1"><Settings className="w-3.5 h-3.5 text-orange-400" /> Groq API Config</strong>
+                  <a 
+                    href="https://console.groq.com/keys" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-orange-400 hover:underline flex items-center gap-0.5 font-semibold text-[10px]"
+                  >
+                    Get Groq Key <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                </div>
+                <div className="flex gap-2">
+                  <input 
+                    type="password" 
+                    value={groqKey}
+                    onChange={(e) => {
+                      setGroqKey(e.target.value);
+                      localStorage.setItem('dh_trial_groq_key', e.target.value);
+                    }}
+                    placeholder="Paste Groq API Key..."
+                    className="flex-1 px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-white font-mono text-[11px] focus:outline-none focus:border-orange-500"
+                  />
+                  {groqKey && (
+                    <button 
+                      onClick={() => {
+                        setGroqKey('');
+                        localStorage.removeItem('dh_trial_groq_key');
+                      }}
+                      className="px-2 bg-red-950/40 hover:bg-red-950/70 border border-red-900/50 text-red-300 font-bold rounded-lg transition-colors text-[10px]"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
